@@ -1,0 +1,74 @@
+language: cpp
+os: linux
+
+jobs:
+  include:
+    - os: linux
+      dist: bionic
+      compiler: clang
+      group: travis_latest
+      env: MATRIX_EVAL="CC=clang-8 && CXX=clang++-8"
+      addons: { apt: { packages: ["ninja-build", "clang-8", "libc++-8-dev", "libc++abi-8-dev"], sources: ["llvm-toolchain-xenial-8"] } }
+
+    - os: linux
+      dist: bionic
+      compiler: gcc
+      group: travis_latest
+      env: MATRIX_EVAL="CC=gcc-9 && CXX=g++-9"
+      addons: { apt: { packages: ["ninja-build", "g++-9", "libstdc++-9-dev"], sources: { sourceline: "ppa:ubuntu-toolchain-r/test" } } }
+
+install:
+  - eval "${MATRIX_EVAL}"
+  - ${CXX} --version
+
+  - ninja --version
+
+  - DEPS_DIR="${TRAVIS_BUILD_DIR}/deps"
+  - mkdir -p ${DEPS_DIR} && cd ${DEPS_DIR}
+
+  - travis_retry wget --no-check-certificate https://github.com/Kitware/CMake/releases/download/v3.16.0/cmake-3.16.0-Linux-x86_64.tar.gz
+  - echo "fdbd696299c11a8e0947662276e51218 *cmake-3.16.0-Linux-x86_64.tar.gz" > cmake_md5.txt
+  - md5sum -c cmake_md5.txt
+  - tar -xvf cmake-3.16.0-Linux-x86_64.tar.gz > /dev/null
+  - mv cmake-3.16.0-Linux-x86_64 cmake-install
+  - PATH=${DEPS_DIR}/cmake-install:${DEPS_DIR}/cmake-install/bin:$PATH
+  - cd ${TRAVIS_BUILD_DIR}
+  - which cmake
+  - cmake --version
+
+before_script:
+  - cd ${TRAVIS_BUILD_DIR}
+  - cd build
+  - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGENERATE_COVERAGE_INFO=ON -DGCOV_COMMAND=/usr/bin/gcov-9 ..
+  - cmake --build .
+
+script:
+  - cd ${TRAVIS_BUILD_DIR}
+  - cd build
+  - ctest -C Debug
+
+after_success:
+  - cd ${TRAVIS_BUILD_DIR}/build
+  - |
+    if [[ "${CXX}" == "g++-9" ]]; then
+        cmake --build . --target coverage
+        bash <(curl -s https://codecov.io/bash) -x /usr/bin/gcov-9 2> /dev/null
+    fi
+  - |
+    for i in `seq 1 25`;
+    do
+      if (( $i < 10 )); then
+        if [ -d 0$i ]; then
+            echo Result for day 0$i:
+            cd 0$i
+            ./advent0$i
+        fi
+      else
+        if [ -d $i ]; then
+            echo Result for day $i:
+            cd $i
+            ./advent$i
+        fi
+      fi
+      cd ..
+    done
