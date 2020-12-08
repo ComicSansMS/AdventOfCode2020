@@ -9,7 +9,7 @@
 
 std::vector<PasswordPhilosophy> parseInput(std::string_view input)
 {
-    std::regex rx_line(R"(^(\d+)-(\d+) (\w): (\w+)[\r\n]?$)");
+    std::regex rx_line(R"((\d+)-(\d+) (\w): (\w+)[\r\n]?)");
 
     using regex_it = std::regex_iterator<std::string_view::iterator>;
     auto const it_begin = regex_it(begin(input), end(input), rx_line);

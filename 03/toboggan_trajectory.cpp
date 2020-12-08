@@ -34,7 +34,7 @@ Map parseInput(std::string_view input)
 
 bool hasTreeAt(Map const& m, int x, int y)
 {
-    if ((y < 0) || (y >= m.m.size())) { return false; }
+    if ((y < 0) || (y >= static_cast<int>(m.m.size()))) { return false; }
     auto const& row = m.m[y];
     return row.find(x % m.map_width) != std::end(row);
 }
@@ -43,7 +43,7 @@ std::vector<Vec2> slopeTraversal(Map const& m, int slope_x, int slope_y)
 {
     std::vector<Vec2> ret;
     int ix = 0;
-    for (int iy = 0; iy < m.m.size(); iy += slope_y) {
+    for (int iy = 0; iy < static_cast<int>(m.m.size()); iy += slope_y) {
         if (hasTreeAt(m, ix, iy)) {
             ret.push_back(Vec2{ ix, iy });
         }

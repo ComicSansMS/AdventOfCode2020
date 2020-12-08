@@ -187,7 +187,7 @@ Graph parseInput(std::string_view input)
         }
     }
 
-    for (int i = 0; i<ret.nodes.size(); ++i) {
+    for (std::size_t i = 0; i < ret.nodes.size(); ++i) {
         ret.edges.emplace_back();
         for (auto const& [amount, dest_color] : raw_edges[i]) {
             Edge e;

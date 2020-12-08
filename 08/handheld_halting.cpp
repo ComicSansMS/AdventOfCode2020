@@ -18,7 +18,7 @@ Gameboy parseInput(std::string_view input)
     Gameboy ret;
     ret.acc = 0;
     ret.pc = 0;
-    std::regex rx_line(R"(^(\w\w\w) ([\+,\-])(\d+)[\r\n]?$)");
+    std::regex rx_line(R"((\w\w\w) ([\+,\-])(\d+)[\r\n]?)");
 
     using regex_it = std::regex_iterator<std::string_view::iterator>;
     auto const it_begin = regex_it(begin(input), end(input), rx_line);
@@ -77,7 +77,7 @@ int64_t runUntilLoop(Gameboy& gb)
 
 int64_t fixAndRun(Gameboy const& gb)
 {
-    for (int i = 0; i < gb.ops.size(); ++i) {
+    for (std::size_t i = 0; i < gb.ops.size(); ++i) {
         if (gb.ops[i].index() != 2) {
             Gameboy gbi = gb;
             gbi.acc = 0;

@@ -56,7 +56,7 @@ int countAllYesAnswersInGroup(Group const& g)
 {
     std::bitset<26> yes_bits(0xffffffff);
     for (auto const& a : g.answers) {
-        for (int i = 0; i < a.size(); ++i) {
+        for (std::size_t i = 0; i < a.size(); ++i) {
             if (!a[i]) {
                 yes_bits.reset(i);
             }
