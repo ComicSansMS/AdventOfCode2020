@@ -38,7 +38,8 @@ Timetable parseInput(std::string_view input)
         if (entry == "x") {
             t = -1;
         } else {
-            std::from_chars(line2.data() + it_offset, line2.data() + end_of_entry, t);
+            res = std::from_chars(line2.data() + it_offset, line2.data() + end_of_entry, t);
+            assert(res.ec == std::errc{});
         }
         ret.departure_intervals.push_back(t);
         it_offset = end_of_entry + 1;
