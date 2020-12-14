@@ -42,6 +42,7 @@ std::vector<Instruction> parseInput(std::string_view input)
                         mask.mask_1.set(i);
                     } else {
                         assert(c == 'X');
+                        mask.mask_x.set(i);
                     }
                 }
                 return mask;
@@ -96,3 +97,54 @@ Memory runProgram(std::vector<Instruction> const& instructions)
 
     return mem;
 }
+
+void execute2(Mask const& mask, Memory& mem)
+{
+    mem.current_mask = mask;
+}
+
+void execute2(Mov const& mov, Memory& mem)
+{
+    std::vector<int> x_bits;
+    for(int i = 0; i < 36; ++i) {
+        if(mem.current_mask.mask_x.test(i)) {
+            x_bits.push_back(i);
+        }
+    }
+    assert(x_bits.size() == mem.current_mask.mask_x.count());
+
+    for(uint64_t i_addr = 0, i_addr_end = (uint64_t(1) << x_bits.size()); i_addr < i_addr_end; ++i_addr) {
+        std::bitset<36> addr_mask;
+        for(std::size_t i_bits = 0; i_bits < x_bits.size(); ++i_bits) {
+            uint64_t const bit = (i_addr >> i_bits) & 0b01;
+            assert((bit == 0) || (bit == 1));
+            if(bit == 1) {
+                addr_mask.set(x_bits[i_bits]);
+            }
+        }
+        std::bitset<36> address = mov.address;
+        for(auto const& x : x_bits) { address.reset(x); }
+        address |= mem.current_mask.mask_1;
+        address |= addr_mask;
+        auto const address_index = address.to_ullong();
+        mem.memory[address_index] = mov.value;
+    }
+}
+
+
+Memory runProgram2(std::vector<Instruction> const& instructions)
+{
+    Memory mem{};
+
+    for(auto const& instruction : instructions) {
+        std::visit([&mem](auto&& op) { execute2(op, mem); }, instruction);
+    }
+
+    mem.sum_of_values = std::accumulate(begin(mem.memory), end(mem.memory), int64_t(0),
+        [](int64_t acc, auto const& p) -> int64_t {
+            return acc + static_cast<int64_t>(p.second.to_ullong());
+        });
+
+    return mem;
+}
+

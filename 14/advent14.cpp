@@ -40,9 +40,10 @@ int main(int argc, char* argv[])
 
     auto const instructions = parseInput(*input);
     auto const result = runProgram(instructions);
+    auto const result2 = runProgram2(instructions);
 
     fmt::print("First result is {}\n", result.sum_of_values);
-    //fmt::print("Second result is {}\n", distance(course_waypoint.back().ferry));
+    fmt::print("Second result is {}\n", result2.sum_of_values);
 
     return 0;
 }

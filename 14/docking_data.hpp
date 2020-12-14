@@ -13,6 +13,7 @@
 struct Mask {
     std::bitset<36> mask_0;
     std::bitset<36> mask_1;
+    std::bitset<36> mask_x;
 };
 
 struct Mov {
@@ -31,5 +32,7 @@ struct Memory {
 };
 
 Memory runProgram(std::vector<Instruction> const& instructions);
+
+Memory runProgram2(std::vector<Instruction> const& instructions);
 
 #endif
