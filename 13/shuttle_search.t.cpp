@@ -25,6 +25,12 @@ TEST_CASE("Shuttle Search")
 
     SECTION("Mod Chain")
     {
-        modChain(parseInput(sample_input));
+        CHECK(solve(parseInput(sample_input)) == 1068781);
+
+        CHECK(solve(parseInput("99\n17,x,13,19\n")) == 3417);
+        CHECK(solve(parseInput("99\n67,7,59,61\n")) == 754018);
+        CHECK(solve(parseInput("99\n67,x,7,59,61\n")) == 779210);
+        CHECK(solve(parseInput("99\n67,7,x,59,61\n")) == 1261476);
+        CHECK(solve(parseInput("99\n1789,37,47,1889\n")) == 1202161486);
     }
 }

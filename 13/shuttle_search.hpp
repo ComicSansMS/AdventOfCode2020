@@ -26,4 +26,6 @@ Result findFirstBus(Timetable const& timetable);
 
 void modChain(Timetable const& timetable);
 
+int64_t solve(Timetable const& timetable);
+
 #endif

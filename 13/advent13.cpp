@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
     auto const timetable = parseInput(*input);
 
     fmt::print("First result is {}\n", findFirstBus(timetable).answer);
-    //fmt::print("Second result is {}\n", distance(course_waypoint.back().ferry));
+    fmt::print("Second result is {}\n", solve(timetable));
 
     return 0;
 }

@@ -82,3 +82,42 @@ void modChain(Timetable const& timetable)
     }
     chains.emplace_back();
 }
+
+int64_t solve(Timetable const& timetable)
+{
+    std::vector<int64_t> m;
+    std::vector<int64_t> a;
+    for(int64_t i = 0; i < static_cast<int64_t>(timetable.departure_intervals.size()); ++i) {
+        int64_t const interval = timetable.departure_intervals[i];
+        if (interval != -1) {
+            m.push_back(interval);
+            a.push_back(i);
+        }
+    }
+
+    int64_t const N = std::accumulate(begin(m), end(m), int64_t{1}, std::multiplies{});
+    std::vector<int64_t> Ni;
+    Ni.reserve(m.size());
+    for(auto const& mi : m) {
+        Ni.push_back(N / mi);
+    }
+
+    std::vector<int64_t> xi;
+    xi.reserve(m.size());
+    int64_t acc = 0;
+    for (std::size_t i = 0; i < m.size(); ++i) {
+        auto const mi = m[i];
+        auto const ni = Ni[i];
+        for(int64_t xc = 0; xc < mi; ++xc) {
+            if ((xc * ni) % mi == 1) {
+                xi.push_back(xc);
+                break;
+            }
+        }
+        assert(xi.size() == i+1);
+        acc += a[i] * xi.back() * ni;
+    }
+
+    int64_t ret = acc % N;
+    return N - ret;
+}
