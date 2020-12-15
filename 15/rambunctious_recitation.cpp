@@ -82,11 +82,14 @@ Game playGame(std::vector<int64_t> input, std::size_t n_turns)
 int64_t playGameFast(std::vector<int64_t> input, std::size_t n_turns)
 {
     int64_t last_spoken_number = -1;
-    std::unordered_map<int64_t, Mention> last_mention;
+    std::vector<Mention> last_mention;
     for(std::size_t i = 0; i < n_turns; ++i) {
         if(i < input.size()) {
             last_spoken_number = input[i];
-            last_mention.insert(std::make_pair(input[i], Mention(i)));
+            if(last_mention.size() < input[i] + 1) {
+                last_mention.resize(input[i] + 1);
+            }
+            last_mention[input[i]] = Mention(i);
         } else {
             auto& mention = last_mention[last_spoken_number];
             if (isFirstMention(mention)) {
@@ -96,6 +99,7 @@ int64_t playGameFast(std::vector<int64_t> input, std::size_t n_turns)
             } else {
                 auto const answer = getAnswer(mention);
                 last_spoken_number = answer;
+                if(last_mention.size() < answer + 1) { last_mention.resize(answer + 1); }
                 addMention(last_mention[answer], i);
             }
         }
