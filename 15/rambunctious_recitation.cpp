@@ -82,13 +82,10 @@ Game playGame(std::vector<int64_t> input, std::size_t n_turns)
 int64_t playGameFast(std::vector<int64_t> input, std::size_t n_turns)
 {
     int64_t last_spoken_number = -1;
-    std::vector<Mention> last_mention;
+    std::vector<Mention> last_mention(n_turns);
     for(std::size_t i = 0; i < n_turns; ++i) {
         if(i < input.size()) {
             last_spoken_number = input[i];
-            if(last_mention.size() < input[i] + 1) {
-                last_mention.resize(input[i] + 1);
-            }
             last_mention[input[i]] = Mention(i);
         } else {
             auto& mention = last_mention[last_spoken_number];
@@ -99,7 +96,6 @@ int64_t playGameFast(std::vector<int64_t> input, std::size_t n_turns)
             } else {
                 auto const answer = getAnswer(mention);
                 last_spoken_number = answer;
-                if(last_mention.size() < answer + 1) { last_mention.resize(answer + 1); }
                 addMention(last_mention[answer], i);
             }
         }
