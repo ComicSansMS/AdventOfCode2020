@@ -40,8 +40,8 @@ int main(int argc, char* argv[])
 
     auto const world = parseInput(*input);
 
-    fmt::print("First result is {}\n", bootCycle(world));
-    //fmt::print("Second result is {}\n", solveTicket(ticket_info));
+    fmt::print("First result is {}\n", bootCycle3(world));
+    fmt::print("Second result is {}\n", bootCycle4(world));
 
     return 0;
 }
