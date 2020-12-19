@@ -2,6 +2,9 @@
 
 #include <fmt/printf.h>
 
+#include <range/v3/view/cartesian_product.hpp>
+#include <range/v3/range/conversion.hpp>
+
 #include <algorithm>
 #include <bitset>
 #include <cassert>
@@ -142,3 +145,131 @@ int64_t countMatchingWords(RulesAndWords const& rules_and_words)
     auto const& [rules, words] = rules_and_words;
     return std::count_if(begin(words), end(words), [&rules](std::string const& w) { return match(rules, w); });
 }
+
+std::vector<std::string> generate(std::vector<Rule> const&, Empty const&)
+{
+    fmt::print("Generating from empty rule.\n");
+    return {};
+}
+
+std::vector<std::string> generate(std::vector<Rule> const&, Terminal const& term)
+{
+    return { std::string{ term.c } };
+}
+
+std::vector<std::string> cartesian_product(std::vector<std::string> const& v1, std::vector<std::string> const& v2)
+{
+    std::vector<std::string> ret;
+    ret.reserve(v1.size() * v2.size());
+    for (auto const& l : v1) {
+        for (auto const& r : v2) {
+            ret.push_back(l + r);
+        }
+    }
+    return ret;
+}
+
+std::vector<std::string> generate(std::vector<Rule> const& rules, Reference const& refs)
+{
+    std::vector<std::vector<std::string>> generated;
+    generated.reserve(refs.size());
+    for (auto const& r : refs) {
+        auto const rule = rules[r];
+        generated.push_back(std::visit([&rules](auto&& r) { return generate(rules, r); }, rule));
+    }
+
+    std::vector<std::string> ret = generated.front();
+    for (std::size_t i = 1; i < generated.size(); ++i) {
+        ret = cartesian_product(ret, generated[i]);
+    }
+    return ret;
+}
+
+std::vector<std::string> generate(std::vector<Rule> const& rules, Alternatives const& alts)
+{
+    std::vector<std::string> ret;
+    for(auto const& refs : alts) {
+        auto const t = generate(rules, refs);
+        ret.reserve(ret.size() + t.size());
+        std::move(begin(t), end(t), std::back_inserter(ret));
+    }
+    return ret;
+}
+
+std::vector<std::string> generateFromRule(std::vector<Rule> const& rules, std::size_t rule_index)
+{
+    Rule const& rule = rules[rule_index];
+    auto const ret = std::visit([&rules](auto&& r) { return generate(rules, r); }, rule);
+    for (auto const& w : ret) {
+        assert(match(rules, rule_index, w));
+    }
+    return ret;
+}
+
+bool match_rule_loop(std::vector<std::string> const& loop42, std::vector<std::string> const& loop31, std::string const& w)
+{
+    std::size_t const chunk_size42 = loop42.front().size();
+    std::size_t i = 0;
+    int loop_count_42 = 0;
+    for (; i < w.size(); i += chunk_size42) {
+        std::string chunk_i = w.substr(i, chunk_size42);
+        if (std::find(begin(loop42), end(loop42), chunk_i) == end(loop42)) { break; }
+        ++loop_count_42;
+    }
+    if (i == w.size()) { return false; }
+    std::size_t const chunk_size31 = loop31.front().size();
+    int loop_count_31 = 0;
+    for (; i < w.size(); i += chunk_size31) {
+        std::string chunk_i = w.substr(i, chunk_size31);
+        if (std::find(begin(loop31), end(loop31), chunk_i) == end(loop31)) { return false; }
+        ++loop_count_31;
+    }
+    return (loop_count_42 > loop_count_31);
+}
+
+int64_t countWithLoops(RulesAndWords const& rules_and_words)
+{
+    int64_t ret = 0;
+    std::vector<std::string> matches;
+    auto const& [rules, words] = rules_and_words;
+    auto const loop42 = generateFromRule(rules, 42);
+    assert(std::all_of(begin(loop42), end(loop42),
+           [s = loop42.front().size()](std::string const& str) { return str.size() == s; }));
+    auto const loop31 = generateFromRule(rules, 31);
+    assert(std::all_of(begin(loop31), end(loop31),
+           [s = loop31.front().size()](std::string const& str) { return str.size() == s; }));
+    for (auto const& w : words) {
+        bool const m1 = match(rules, w);
+        bool const m2 = match_rule_loop(loop42, loop31, w);
+        if (m1 || m2) {
+            ++ret;
+            matches.push_back(w);
+        }
+    }
+    return ret;
+}
+
+/*
+
+bbabbbbaabaabba
+babbbbaabbbbbabbbbbbaabaaabaaa
+aaabbbbbbaaaabaababaabababbabaaabbababababaaa
+bbbbbbbaaaabbbbaaabbabaaa
+bbbababbbbaaaaaaaabbababaaababaabab
+ababaaaaaabaaab
+ababaaaaabbbaba
+baabbaaaabbaaaababbaababb
+abbbbabbbbaaaababbbbbbaaaababb
+ aaaaabbaabaaaaababaa
+"aaaaabbaabaaaaababaa"
+
+"aaaabbaaaabbaaa"
+
+ aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
+"aaaabbaabbaaaaaaabbbabbbaaabbaabaaa"
+
+ aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
+"aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba"
+
+
+*/

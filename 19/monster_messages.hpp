@@ -67,4 +67,8 @@ bool match(std::vector<Rule> const& rules, std::string const& word);
 
 int64_t countMatchingWords(RulesAndWords const& rules_and_words);
 
+std::vector<std::string> generateFromRule(std::vector<Rule> const& rules, std::size_t rule_index);
+
+int64_t countWithLoops(RulesAndWords const& rules_and_words);
+
 #endif

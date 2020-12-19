@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
     auto const rules_and_words = parseInput(*input);
 
     fmt::print("First result is {}\n", countMatchingWords(rules_and_words));
-    //fmt::print("Second result is {}\n", evaluateAndSum(nodes2));
+    fmt::print("Second result is {}\n", countWithLoops(rules_and_words));
 
     return 0;
 }
