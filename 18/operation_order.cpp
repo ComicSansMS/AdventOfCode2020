@@ -115,7 +115,7 @@ Node parseSubexpression(std::vector<Token>::const_iterator& it, std::vector<Toke
     if (t1.type == Token::Type::ParenOpen) {
         return parseNode_rec(it, it_end, nested_level + 1);
     } else if (t1.type == Token::Type::Terminal) {
-        return parseTerminal(t1);
+        return Node(parseTerminal(t1), nested_level);
     } else {
         fmt::print("Unexpected token (type {}).", t1.type);
         return {};
@@ -136,12 +136,12 @@ std::tuple<Node, bool> parseNodeOpAndRhs(std::vector<Token>::const_iterator& it,
         Nodes::Addition ret;
         ret.lhs = std::move(lhs);
         ret.rhs = std::move(rhs);
-        return std::make_tuple(ret, false);
+        return std::make_tuple(Node(ret, nested_level), false);
     } else if(t_op.token == "*") {
         Nodes::Multiplication ret;
         ret.lhs = std::move(lhs);
         ret.rhs = std::move(rhs);
-        return std::make_tuple(ret, false);
+        return std::make_tuple(Node(ret, nested_level), false);
     } else {
         fmt::print("Unexpected operator {}.", t_op.token);
     }
@@ -189,4 +189,32 @@ int64_t evaluateAndSum(std::vector<Node> const& nodes)
          acc += n.evaluate();
      }
      return acc;
+}
+
+Node changeAdditionPrecedence(Node const& in)
+{
+    Node n = in;
+    if (n.getType() == Nodes::Type::Addition) {
+        Nodes::Addition* n_add = n.getAs<Nodes::Addition>();
+        n_add->lhs = changeAdditionPrecedence(n_add->lhs);
+        n_add->rhs = changeAdditionPrecedence(n_add->rhs);
+        if ((n_add->lhs.getType() == Nodes::Type::Multiplication) && (n.getLevel() == n_add->lhs.getLevel())) {
+            // rotate
+            Node n_child = std::move(n_add->lhs);
+            Nodes::Multiplication* n_child_mul = n_child.getAs<Nodes::Multiplication>();
+            Node a = std::move(n_child_mul->lhs);
+            Node b = std::move(n_child_mul->rhs);
+            Node c = std::move(n_add->rhs);
+            n_add->lhs = std::move(b);
+            n_add->rhs = std::move(c);
+            n_child_mul->lhs = std::move(a);
+            n_child_mul->rhs = std::move(n);
+            n = std::move(n_child);
+        }
+    } else if (n.getType() == Nodes::Type::Multiplication) {
+        Nodes::Multiplication* n_mul = n.getAs<Nodes::Multiplication>();
+        n_mul->lhs = changeAdditionPrecedence(n_mul->lhs);
+        n_mul->rhs = changeAdditionPrecedence(n_mul->rhs);
+    }
+    return n;
 }

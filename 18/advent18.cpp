@@ -2,6 +2,9 @@
 
 #include <fmt/printf.h>
 
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/transform.hpp>
+
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -39,9 +42,10 @@ int main(int argc, char* argv[])
     }
 
     auto const nodes = parseInput(*input);
+    auto const nodes2 = ranges::to<std::vector<Node>>(nodes | ranges::views::transform(changeAdditionPrecedence));
 
     fmt::print("First result is {}\n", evaluateAndSum(nodes));
-    //fmt::print("Second result is {}\n", bootCycle4(world));
+    fmt::print("Second result is {}\n", evaluateAndSum(nodes2));
 
     return 0;
 }

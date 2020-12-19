@@ -107,4 +107,16 @@ TEST_CASE("Operation Order")
         CHECK(evaluateAndSum(nodes) == 25985);
     }
 
+    SECTION("Change Operation Order Precedence")
+    {
+        CHECK(parseLine("1 * 2 + 3").toString() == "((1 * 2) + 3)");
+        CHECK(changeAdditionPrecedence(parseLine("1 * 2 + 3")).toString() == "(1 * (2 + 3))");
+
+        CHECK(changeAdditionPrecedence(parseLine("1 + (2 * 3) + (4 * (5 + 6))")).evaluate() == 51);
+        CHECK(changeAdditionPrecedence(parseLine("2 * 3 + (4 * 5)")).evaluate() == 46);
+        CHECK(changeAdditionPrecedence(parseLine("5 + (8 * 3 + 9 + 3 * 4 * 3)")).evaluate() == 1445);
+        CHECK(changeAdditionPrecedence(parseLine("5 * 9 * (7 * 3 * 3 + 9 * 3 + (8 + 6 * 4))")).evaluate() == 669060);
+        CHECK(changeAdditionPrecedence(parseLine("((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2")).evaluate() == 23340);
+    }
+
 }

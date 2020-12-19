@@ -94,28 +94,30 @@ private:
     };
 private:
     std::unique_ptr<NodeConcept> m_node;
+    int m_level;
 public:
     Node()
-        :m_node(std::make_unique<NodeModel<Nodes::Invalid>>(Nodes::Invalid{}))
+        :m_node(std::make_unique<NodeModel<Nodes::Invalid>>(Nodes::Invalid{})), m_level(-1)
     {}
 
     template<typename T, typename = std::enable_if_t<Nodes::IsNode<std::decay_t<T>>::value>>
-    Node(T&& t)
-        :m_node(std::make_unique<NodeModel<std::decay_t<T>>>(std::forward<T>(t)))
+    Node(T&& t, int node_level)
+        :m_node(std::make_unique<NodeModel<std::decay_t<T>>>(std::forward<T>(t))), m_level(node_level)
     {}
 
     Node(Node const& rhs)
-        :m_node(rhs.m_node->clone())
+        :m_node(rhs.m_node->clone()), m_level(rhs.m_level)
     {}
 
     Node(Node&& rhs)
-        :m_node(std::move(rhs.m_node))
+        :m_node(std::move(rhs.m_node)), m_level(rhs.m_level)
     {}
 
     Node& operator=(Node const& rhs)
     {
         if (this != &rhs) {
             m_node = rhs.m_node->clone();
+            m_level = rhs.m_level;
         }
         return *this;
     }
@@ -123,6 +125,7 @@ public:
     Node& operator=(Node&& rhs) {
         if (this != &rhs) {
             std::swap(m_node, rhs.m_node);
+            m_level = rhs.m_level;
         }
         return *this;
     }
@@ -149,6 +152,10 @@ public:
     T const* getAs() const {
         NodeModel<T>* ptr = dynamic_cast<NodeModel<T>*>(m_node.get());
         return (ptr) ? ptr->getNode() : nullptr;
+    }
+
+    int getLevel() const {
+        return m_level;
     }
 };
 
@@ -200,5 +207,7 @@ Node parseLine(std::string_view line);
 std::vector<Node> parseInput(std::string_view input);
 
 int64_t evaluateAndSum(std::vector<Node> const& nodes);
+
+Node changeAdditionPrecedence(Node const& in);
 
 #endif
