@@ -54,12 +54,15 @@ TEST_CASE("Crab Cups")
         CHECK(solve1(cups) == 67384529);
     }
 
+#ifdef NDEBUG
     SECTION("Solve 2")
     {
         auto const cups = parseInput("389125467");
-        auto const solved_cups = solve2(cups);
+        auto const solved_cups = play10Mill(cups);
         CHECK(solved_cups[0] == 1);
         CHECK(solved_cups[1] == 934001);
         CHECK(solved_cups[2] == 159792);
+        CHECK(solve2(cups) == 149245887792);
     }
+#endif
 }

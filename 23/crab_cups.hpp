@@ -25,6 +25,8 @@ int64_t order(Cups c);
 
 int64_t solve1(Cups const& c);
 
-Cups solve2(Cups const& cups_small);
+Cups play10Mill(Cups const& cups_small);
+
+int64_t solve2(Cups const& c);
 
 #endif

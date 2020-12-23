@@ -11,12 +11,14 @@
 #include <cassert>
 #include <cctype>
 #include <charconv>
+#include <forward_list>
 #include <iterator>
 #include <limits>
 #include <numeric>
 #include <regex>
 #include <sstream>
 #include <string>
+#include <memory_resource>
 
 Cups parseInput(std::string_view input)
 {
@@ -29,24 +31,64 @@ Cups parseInput(std::string_view input)
     return ret;
 }
 
+std::pmr::forward_list<int> pick_up(std::pmr::forward_list<int>& c, std::pmr::forward_list<int>::iterator it_first)
+{
+    auto it_end = it_first;
+    int i = 0;
+    for (; i < 4; ++i) {
+        ++it_end;
+        if (it_end == end(c)) { break; }
+    }
+    std::pmr::forward_list<int> picked_elements(c.get_allocator());
+    picked_elements.splice_after(picked_elements.before_begin(), c, it_first, it_end);
+    if (i != 4) {
+        auto it_begin = c.before_begin();
+        it_end = it_begin;
+        for (; i < 4; ++i) {
+            ++it_end;
+        }
+        auto it_dest = (picked_elements.empty()) ? picked_elements.before_begin() : picked_elements.begin();
+        for (auto it = it_dest; it != end(picked_elements); ++it) {
+            it_dest = it;
+        }
+        picked_elements.splice_after(it_dest, c, it_begin, it_end);
+    }
+    return picked_elements;
+}
+
+void playRound(std::pmr::forward_list<int>& c, std::pmr::forward_list<int>::iterator& it_first,
+               std::vector<std::pmr::forward_list<int>::iterator> const& direct_iterators, std::size_t n_cups)
+{
+    std::pmr::forward_list<int> picked_up = pick_up(c, it_first);
+
+    int destination_label = *it_first - 1;
+    if (destination_label <= 0) { destination_label += static_cast<int>(n_cups); }
+    while (std::find(begin(picked_up), end(picked_up), destination_label) != end(picked_up)) {
+        --destination_label;
+        if (destination_label <= 0) { destination_label += static_cast<int>(n_cups); }
+    }
+    auto it_dest = direct_iterators[destination_label];
+    assert(it_dest != end(c));
+
+    c.splice_after(it_dest, picked_up);
+    ++it_first;
+    if (it_first == end(c)) { it_first = begin(c); }
+}
+
 Cups playRound(Cups c)
 {
     auto const n_cups = c.size();
-    std::array<int, 3> picked_up{ c[1], c[2], c[3] };
-    c.erase(c.begin() + 1, c.begin() + 4);
-
-    int destination_label = c[0] - 1;
-    auto it_dest = end(c);
-    for (; it_dest == end(c); --destination_label) {
-        if (destination_label <= 0) { destination_label += static_cast<int>(n_cups); }
-        it_dest = std::find(begin(c), end(c), destination_label);
+    std::pmr::forward_list<int> cl(begin(c), end(c));
+    std::vector<std::forward_list<int>::iterator> direct_iter(n_cups + 1);
+    for (std::forward_list<int>::iterator it = begin(cl), it_end = end(cl); it != it_end; ++it) {
+        direct_iter[*it] = it;
     }
-    assert(it_dest != end(c));
+    std::pmr::forward_list<int>::iterator it_first = cl.begin();
+    playRound(cl, it_first, direct_iter, n_cups);
 
-    c.insert(it_dest + 1, begin(picked_up), end(picked_up));
-    std::rotate(begin(c), begin(c) + 1, end(c));
-
-    return c;
+    Cups ret{ cl.begin(), cl.end() };
+    std::rotate(begin(ret), begin(ret) + 1, end(ret));
+    return ret;
 }
 
 int64_t order(Cups c)
@@ -61,27 +103,58 @@ int64_t order(Cups c)
     return acc;
 }
 
-int64_t solve1(Cups const& c)
+int64_t solve1(Cups const& cups)
 {
-    Cups it = c;
-    for (int i = 0; i < 100; ++i) { it = playRound(it); }
-    return order(it);
+    std::pmr::monotonic_buffer_resource mrc(1'000'000 * 24);
+    std::pmr::forward_list<int> c(begin(cups), end(cups), &mrc);
+    std::vector<std::pmr::forward_list<int>::iterator> direct_iterators(1'000'001);
+    for (std::forward_list<int>::iterator it = begin(c), it_end = end(c); it != it_end; ++it) {
+        direct_iterators[*it] = it;
+    }
+
+    auto it = begin(c);
+    for (int i = 0; i < 100; ++i) {
+        playRound(c, it, direct_iterators, cups.size());
+    }
+
+    Cups ret(begin(c), end(c));
+    std::rotate(begin(ret), std::find(begin(ret), end(ret), 1), end(ret));
+    return order(ret);
 }
 
-Cups solve2(Cups const& cups_small)
+Cups play10Mill(Cups const& cups_small)
 {
-    Cups c = cups_small;
-    for (int i = *std::max_element(begin(c), end(c)); i < 1'000'000; ++i) {
-        c.push_back(i + 1);
+    std::pmr::monotonic_buffer_resource mrc(1'000'000 * 24);
+    std::pmr::forward_list<int> c(begin(cups_small), end(cups_small), &mrc);
+    std::vector<std::pmr::forward_list<int>::iterator> direct_iterators(1'000'001);
+    {
+        auto it_end = begin(c);
+        for (auto it = it_end; it != end(c); ++it) {
+            it_end = it;
+        }
+        int const biggest_cup = *std::max_element(begin(cups_small), end(cups_small));
+        it_end = c.insert_after(it_end, biggest_cup + 1);
+        for (int i = biggest_cup + 1; i < 1'000'000; ++i) {
+            it_end = c.insert_after(it_end, i + 1);
+        }
+    }
+    for (std::forward_list<int>::iterator it = begin(c), it_end = end(c); it != it_end; ++it) {
+        direct_iterators[*it] = it;
     }
 
-    int i_prnt = 0;
+    auto it = begin(c);
     for (int i = 0; i < 10'000'000; ++i) {
-        if (i_prnt++ == 100'000) { fmt::print("."); i_prnt = 0; }
-        c = playRound(std::move(c));
+        playRound(c, it, direct_iterators, 1'000'000);
     }
 
-    std::rotate(begin(c), std::find(begin(c), end(c), 1), end(c));
+    Cups ret(begin(c), end(c));
+    std::rotate(begin(ret), std::find(begin(ret), end(ret), 1), end(ret));
+    return ret;
+}
 
-    return c;
+int64_t solve2(Cups const& c)
+{
+    auto const res = play10Mill(c);
+    assert(res[0] == 1);
+    return static_cast<int64_t>(res[1]) * static_cast<int64_t>(res[2]);
 }

@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
     auto const cups = parseInput(*input);
 
     fmt::print("First result is {}\n", solve1(cups));
-    //fmt::print("Second result is {}\n", playGameRecursive(game).score);
+    fmt::print("Second result is {}\n", solve2(cups));
 
     return 0;
 }
