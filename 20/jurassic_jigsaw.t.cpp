@@ -188,4 +188,142 @@ Tile 3079:
     {
         CHECK(solve1(tiles) == 20899048083289);
     }
+
+    SECTION("Tile Transform")
+    {
+        CHECK(fmt::format("{}", transformTo(tiles[0], TransformState::Straight)) ==
+            "..##.#..#.\n"
+            "##..#.....\n"
+            "#...##..#.\n"
+            "####.#...#\n"
+            "##.##.###.\n"
+            "##...#.###\n"
+            ".#.#.#..##\n"
+            "..#....#..\n"
+            "###...#.#.\n"
+            "..###..###\n");
+
+
+        CHECK(fmt::format("{}", transformTo(tiles[0], TransformState::Rot90)) ==
+            ".#..#####.\n"
+            ".#.####.#.\n"
+            "###...#..#\n"
+            "#..#.##..#\n"
+            "#....#.##.\n"
+            "...##.##.#\n"
+            ".#...#....\n"
+            "#.#.##....\n"
+            "##.###.#.#\n"
+            "#..##.#...\n");
+
+        CHECK(fmt::format("{}", transformTo(tiles[0], TransformState::Rot180)) ==
+            "###..###..\n"
+            ".#.#...###\n"
+            "..#....#..\n"
+            "##..#.#.#.\n"
+            "###.#...##\n"
+            ".###.##.##\n"
+            "#...#.####\n"
+            ".#..##...#\n"
+            ".....#..##\n"
+            ".#..#.##..\n");
+
+        CHECK(fmt::format("{}", transformTo(tiles[0], TransformState::Rot270)) ==
+            "...#.##..#\n"
+            "#.#.###.##\n"
+            "....##.#.#\n"
+            "....#...#.\n"
+            "#.##.##...\n"
+            ".##.#....#\n"
+            "#..##.#..#\n"
+            "#..#...###\n"
+            ".#.####.#.\n"
+            ".#####..#.\n");
+
+        CHECK(fmt::format("{}", transformTo(tiles[0], TransformState::Flip)) ==
+            "..###..###\n"
+            "###...#.#.\n"
+            "..#....#..\n"
+            ".#.#.#..##\n"
+            "##...#.###\n"
+            "##.##.###.\n"
+            "####.#...#\n"
+            "#...##..#.\n"
+            "##..#.....\n"
+            "..##.#..#.\n");
+
+        CHECK(fmt::format("{}", transformTo(tiles[0], TransformState::Flip90)) ==
+            ".#####..#.\n"
+            ".#.####.#.\n"
+            "#..#...###\n"
+            "#..##.#..#\n"
+            ".##.#....#\n"
+            "#.##.##...\n"
+            "....#...#.\n"
+            "....##.#.#\n"
+            "#.#.###.##\n"
+            "...#.##..#\n");
+
+        CHECK(fmt::format("{}", transformTo(tiles[0], TransformState::Flip180)) ==
+            ".#..#.##..\n"
+            ".....#..##\n"
+            ".#..##...#\n"
+            "#...#.####\n"
+            ".###.##.##\n"
+            "###.#...##\n"
+            "##..#.#.#.\n"
+            "..#....#..\n"
+            ".#.#...###\n"
+            "###..###..\n");
+
+        CHECK(fmt::format("{}", transformTo(tiles[0], TransformState::Flip270)) ==
+            "#..##.#...\n"
+            "##.###.#.#\n"
+            "#.#.##....\n"
+            ".#...#....\n"
+            "...##.##.#\n"
+            "#....#.##.\n"
+            "#..#.##..#\n"
+            "###...#..#\n"
+            ".#.####.#.\n"
+            ".#..#####.\n");
+    }
+
+    SECTION("Compressed Transform")
+    {
+        auto ct = compressTile(tiles[0]);
+        auto const equal_sides = [](CompressedTile const& t1, CompressedTile const& t2) {
+            return (t1.left == t2.left) && (t1.bottom == t2.bottom) && (t1.right == t2.right) && (t1.top == t2.top);
+        };
+        ct = transformCompressed(ct);
+        CHECK(ct.transform == TransformState::Rot90);
+        CHECK(equal_sides(ct, compressTile(transformTo(tiles[0], TransformState::Rot90))));
+        ct = transformCompressed(ct);
+        CHECK(ct.transform == TransformState::Rot180);
+        CHECK(equal_sides(ct, compressTile(transformTo(tiles[0], TransformState::Rot180))));
+        ct = transformCompressed(ct);
+        CHECK(ct.transform == TransformState::Rot270);
+        CHECK(equal_sides(ct, compressTile(transformTo(tiles[0], TransformState::Rot270))));
+        ct = transformCompressed(ct);
+        CHECK(ct.transform == TransformState::Flip);
+        CHECK(equal_sides(ct, compressTile(transformTo(tiles[0], TransformState::Flip))));
+        ct = transformCompressed(ct);
+        CHECK(ct.transform == TransformState::Flip90);
+        CHECK(equal_sides(ct, compressTile(transformTo(tiles[0], TransformState::Flip90))));
+        ct = transformCompressed(ct);
+        CHECK(ct.transform == TransformState::Flip180);
+        CHECK(equal_sides(ct, compressTile(transformTo(tiles[0], TransformState::Flip180))));
+        ct = transformCompressed(ct);
+        CHECK(ct.transform == TransformState::Flip270);
+        CHECK(equal_sides(ct, compressTile(transformTo(tiles[0], TransformState::Flip270))));
+        ct = transformCompressed(ct);
+        CHECK(ct.transform == TransformState::Straight);
+        CHECK(equal_sides(ct, compressTile(tiles[0])));
+    }
+
+    SECTION("Solve Puzzle")
+    {
+        auto const sorted_tiles = findCorners(tiles);
+        solvePuzzle(sorted_tiles);
+    }
 }

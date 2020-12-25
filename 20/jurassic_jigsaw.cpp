@@ -55,6 +55,8 @@ CompressedTile compressTile(RawTile const& t)
     for (int i = 0; i < 10; ++i) { ret.bottom[9 - i] = t.field[i + 90]; }
     for (int i = 0; i < 10; ++i) { ret.left[9 - i]   = t.field[i * 10]; }
     for (int i = 0; i < 10; ++i) { ret.right[9 - i]  = t.field[(i * 10) + 9]; }
+    ret.id = t.id;
+    ret.transform = TransformState::Straight;
     return ret;
 }
 
@@ -69,11 +71,10 @@ std::bitset<N> reverse(std::bitset<N> const& b)
 bool hasMatchingSide(CompressedTile const& candidate, CompressedTile const& match, std::bitset<10> CompressedTile::* side_to_check)
 {
     std::bitset<10> const& s = candidate.*side_to_check;
-    std::bitset<10> const s_inv = reverse(s);
-    return ((match.top == s)    || (match.top == s_inv)    ||
-            (match.bottom == s) || (match.bottom == s_inv) ||
-            (match.left == s)   || (match.left == s_inv)   ||
-            (match.right == s)  || (match.right == s_inv));
+    return ((match.top == s)    || (reverse(match.top) == s)    ||
+            (match.bottom == s) || (reverse(match.bottom) == s) ||
+            (match.left == s)   || (reverse(match.left) == s)   ||
+            (match.right == s)  || (reverse(match.right) == s));
 }
 
 SortedTiles findCorners(std::vector<RawTile> const& t)
@@ -117,4 +118,193 @@ int64_t solve1(std::vector<RawTile> const& t)
     assert(corners.size() == 4);
     return std::accumulate(begin(corners), end(corners), int64_t{1},
                            [](int64_t acc, RawTile const& t) { return acc * t.id; });
+}
+
+[[nodiscard]] CompressedTile transformCompressed(CompressedTile ct)
+{
+    auto rot90 = [](CompressedTile const& ct) -> CompressedTile {
+        CompressedTile ret = ct;
+        ret.right = ct.top;
+        ret.bottom = reverse(ct.right);
+        ret.left = ct.bottom;
+        ret.top = reverse(ct.left);
+        return ret;
+    };
+    auto flip = [](CompressedTile const& ct) -> CompressedTile {
+        CompressedTile ret = ct;
+        ret.right = reverse(ct.right);
+        ret.bottom = ct.top;
+        ret.top = ct.bottom;
+        ret.left = reverse(ct.left);
+        return ret;
+    };
+    switch (ct.transform)
+    {
+    default: assert(false);
+    case TransformState::Straight:
+        ct.transform = TransformState::Rot90;
+        return rot90(ct);
+    case TransformState::Rot90:
+        ct.transform = TransformState::Rot180;
+        return rot90(ct);
+    case TransformState::Rot180:
+        ct.transform = TransformState::Rot270;
+        return rot90(ct);
+    case TransformState::Rot270:
+        ct.transform = TransformState::Flip;
+        return flip(rot90(ct));
+    case TransformState::Flip:
+        ct.transform = TransformState::Flip90;
+        return rot90(ct);
+    case TransformState::Flip90:
+        ct.transform = TransformState::Flip180;
+        return rot90(ct);
+    case TransformState::Flip180:
+        ct.transform = TransformState::Flip270;
+        return rot90(ct);
+    case TransformState::Flip270:
+        ct.transform = TransformState::Straight;
+        return flip(rot90(ct));
+    }
+}
+
+[[nodiscard]] RawTile rot90(RawTile const& t)
+{
+    RawTile ret;
+    ret.id = t.id;
+    for (int j = 0; j < 10; ++j) {
+        for (int i = 0; i < 10; ++i) {
+            ret.field[i*10 + j] = t.field[(10 - j - 1)*10 + i];
+        }
+    }
+    return ret;
+}
+
+[[nodiscard]] RawTile flip(RawTile const& t)
+{
+    RawTile ret;
+    ret.id = t.id;
+    for (int j = 0; j < 10; ++j) {
+        for (int i = 0; i < 10; ++i) {
+            ret.field[i*10 + j] = t.field[(10 - i - 1)*10 + j];
+        }
+    }
+    return ret;
+}
+
+[[nodiscard]] RawTile transformTo(RawTile const& t, TransformState target_state)
+{
+    switch (target_state)
+    {
+    default: assert(false);
+    case TransformState::Straight:
+        return t;
+    case TransformState::Rot90:
+        return rot90(t);
+    case TransformState::Rot180:
+        return rot90(rot90(t));
+    case TransformState::Rot270:
+        return rot90(rot90(rot90(t)));
+    case TransformState::Flip:
+        return flip(t);
+    case TransformState::Flip90:
+        return rot90(flip(t));
+        break;
+    case TransformState::Flip180:
+        return rot90(rot90(flip(t)));
+        break;
+    case TransformState::Flip270:
+        return flip(rot90(t));
+        break;
+    }
+}
+
+bool hasAnyMatch(CompressedTile const& source_tile, std::vector<CompressedTile> const& haystack, std::bitset<10> CompressedTile::* source_edge)
+{
+    return std::any_of(begin(haystack), end(haystack),
+        [&source_tile, source_edge](CompressedTile const& m) { return (&m != &source_tile) && hasMatchingSide(source_tile, m, source_edge); });
+}
+
+std::vector<std::vector<CompressedTile>::iterator> findMatchesFor(CompressedTile const& source_tile, std::vector<CompressedTile>& haystack, std::bitset<10> CompressedTile::* source_edge)
+{
+    std::vector<std::vector<CompressedTile>::iterator> ret;
+    for (auto it = haystack.begin(), it_end = haystack.end(); it != it_end; ++it) {
+        if (hasMatchingSide(source_tile, *it, source_edge)) {
+            ret.push_back(it);
+        }
+    }
+    return ret;
+}
+
+/*
+1951    2311    3079
+2729    1427    2473
+2971    1489    1171
+*/
+
+std::vector<RawTile> solvePuzzle(SortedTiles const& sorted_tiles)
+{
+    assert(sorted_tiles.corner.size() == 4);
+    assert(sorted_tiles.edge.size() % 4 == 0);
+    int const dimension = static_cast<int>(sorted_tiles.edge.size() / 4)  + 2;
+    assert(sorted_tiles.middle.size() == (dimension - 2) * (dimension - 2));
+
+    std::vector<CompressedTile> corner;
+    std::transform(begin(sorted_tiles.corner), end(sorted_tiles.corner), std::back_inserter(corner), compressTile);
+    std::vector<CompressedTile> edge;
+    std::transform(begin(sorted_tiles.edge), end(sorted_tiles.edge), std::back_inserter(edge), compressTile);
+    std::vector<CompressedTile> middle;
+    std::transform(begin(sorted_tiles.middle), end(sorted_tiles.middle), std::back_inserter(middle), compressTile);
+
+    std::vector<CompressedTile> solution;
+    solution.reserve(dimension * dimension);
+    // orient first corner correctly
+    solution.push_back(corner.back());
+    corner.pop_back();
+    CompressedTile& corner_ul = solution.front();
+    while (!(hasAnyMatch(corner_ul, edge, &CompressedTile::right) &&
+             hasAnyMatch(corner_ul, edge, &CompressedTile::bottom)))
+    {
+        corner_ul = transformCompressed(corner_ul);
+    }
+
+    // solve top edge
+    CompressedTile const* left_neighbour = &corner_ul;
+    for (int i = 0; i < dimension - 2; ++i) {
+        auto matches = findMatchesFor(*left_neighbour, edge, &CompressedTile::right);
+        assert(matches.size() == 1);
+        auto it_next = matches.back();
+        assert(it_next != end(edge));
+        CompressedTile edge_piece = *it_next;
+        edge.erase(it_next);
+        // find correct orientation
+        while (! ((left_neighbour->right == edge_piece.left) &&
+                  (hasAnyMatch(edge_piece, (i == (dimension - 3) ? corner : edge), &CompressedTile::right)) &&
+                  (hasAnyMatch(edge_piece, middle, &CompressedTile::bottom))) )
+        {
+            edge_piece = transformCompressed(edge_piece);
+            assert(edge_piece.transform != TransformState::Straight);
+        }
+        solution.push_back(edge_piece);
+        left_neighbour = &solution.back();
+    }
+
+    // solve top-left corner
+    {
+        auto matches = findMatchesFor(*left_neighbour, corner, &CompressedTile::right);
+        assert(matches.size() == 1);
+        auto it_next = matches.back();
+        CompressedTile next_piece = *it_next;
+        corner.erase(it_next);
+        while (! ((left_neighbour->right == next_piece.left) &&
+                 (hasAnyMatch(next_piece, edge, &CompressedTile::bottom))) )
+        {
+            next_piece = transformCompressed(next_piece);
+            assert(next_piece.transform != TransformState::Straight);
+        }
+        solution.push_back(next_piece);
+    }
+
+
+    return {};
 }

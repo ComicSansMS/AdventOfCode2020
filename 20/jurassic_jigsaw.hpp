@@ -39,17 +39,36 @@ struct fmt::formatter<RawTile>
     }
 };
 
+enum class TransformState {
+    Straight = 0,
+    Rot90,
+    Rot180,
+    Rot270,
+    Flip,
+    Flip90,
+    Flip180,
+    Flip270
+};
+
 struct CompressedTile {
     std::bitset<10> top;
     std::bitset<10> bottom;
     std::bitset<10> left;
     std::bitset<10> right;
     int32_t id;
+    TransformState transform;
 };
 
 std::vector<RawTile> parseInput(std::string_view input);
 
 CompressedTile compressTile(RawTile const& t);
+
+[[nodiscard]] CompressedTile transformCompressed(CompressedTile ct);
+
+[[nodiscard]] RawTile rot90(RawTile const& t);
+[[nodiscard]] RawTile flip(RawTile const& t);
+
+[[nodiscard]] RawTile transformTo(RawTile const& t, TransformState target_state);
 
 struct SortedTiles {
     std::vector<RawTile> corner;
@@ -60,5 +79,7 @@ struct SortedTiles {
 SortedTiles findCorners(std::vector<RawTile> const& t);
 
 int64_t solve1(std::vector<RawTile> const& t);
+
+std::vector<RawTile> solvePuzzle(SortedTiles const& sorted_tiles);
 
 #endif
