@@ -269,16 +269,16 @@ std::vector<RawTile> solvePuzzle(SortedTiles const& sorted_tiles)
     }
 
     // solve top edge
-    CompressedTile const* left_neighbour = &corner_ul;
     for (int i = 0; i < dimension - 2; ++i) {
-        auto matches = findMatchesFor(*left_neighbour, edge, &CompressedTile::right);
+        CompressedTile const& left_neighbour = solution.back();
+        auto matches = findMatchesFor(left_neighbour, edge, &CompressedTile::right);
         assert(matches.size() == 1);
         auto it_next = matches.back();
         assert(it_next != end(edge));
         CompressedTile edge_piece = *it_next;
         edge.erase(it_next);
         // find correct orientation
-        while (! ((left_neighbour->right == edge_piece.left) &&
+        while (! ((left_neighbour.right == edge_piece.left) &&
                   (hasAnyMatch(edge_piece, (i == (dimension - 3) ? corner : edge), &CompressedTile::right)) &&
                   (hasAnyMatch(edge_piece, middle, &CompressedTile::bottom))) )
         {
@@ -286,17 +286,18 @@ std::vector<RawTile> solvePuzzle(SortedTiles const& sorted_tiles)
             assert(edge_piece.transform != TransformState::Straight);
         }
         solution.push_back(edge_piece);
-        left_neighbour = &solution.back();
     }
 
     // solve top-left corner
     {
-        auto matches = findMatchesFor(*left_neighbour, corner, &CompressedTile::right);
+        CompressedTile const& left_neighbour = solution.back();
+        auto matches = findMatchesFor(left_neighbour, corner, &CompressedTile::right);
         assert(matches.size() == 1);
         auto it_next = matches.back();
         CompressedTile next_piece = *it_next;
         corner.erase(it_next);
-        while (! ((left_neighbour->right == next_piece.left) &&
+        // find correct orientation
+        while (! ((left_neighbour.right == next_piece.left) &&
                  (hasAnyMatch(next_piece, edge, &CompressedTile::bottom))) )
         {
             next_piece = transformCompressed(next_piece);
@@ -304,6 +305,125 @@ std::vector<RawTile> solvePuzzle(SortedTiles const& sorted_tiles)
         }
         solution.push_back(next_piece);
     }
+
+    // solve center pieces
+    for (int i_row = 0; i_row < dimension - 2; ++i_row) {
+        // left edge
+        {
+            CompressedTile const& top_neighbour = solution[i_row * dimension];
+            auto matches = findMatchesFor(top_neighbour, edge, &CompressedTile::bottom);
+            assert(matches.size() == 1);
+            auto it_next = matches.back();
+            CompressedTile next_piece = *it_next;
+            edge.erase(it_next);
+            // find correct orientation
+            while (! ((top_neighbour.bottom == next_piece.top) &&
+                      (hasAnyMatch(next_piece, middle, &CompressedTile::right))) )
+            {
+                next_piece = transformCompressed(next_piece);
+                assert(next_piece.transform != TransformState::Straight);
+            }
+            solution.push_back(next_piece);
+        }
+
+        // middle
+        for (int i_col = 0; i_col < dimension - 2; ++i_col) {
+            CompressedTile const& top_neighbour = solution[(i_row * dimension) + i_col + 1];
+            CompressedTile const& left_neighbour = solution.back();
+            auto matches = findMatchesFor(top_neighbour, middle, &CompressedTile::bottom);
+            assert(matches.size() == 1);
+            auto it_next = matches.back();
+            CompressedTile next_piece = *it_next;
+            middle.erase(it_next);
+            // find correct orientation
+            while (! ((top_neighbour.bottom == next_piece.top) &&
+                      (left_neighbour.right == next_piece.left) &&
+                      (hasAnyMatch(next_piece, ((i_col == dimension - 3) ? edge : middle), &CompressedTile::right))) )
+            {
+                next_piece = transformCompressed(next_piece);
+                assert(next_piece.transform != TransformState::Straight);
+            }
+            solution.push_back(next_piece);
+        }
+
+        // right edge
+        {
+            CompressedTile const& top_neighbour = solution[(i_row + 1) * dimension - 1];
+            CompressedTile const& left_neighbour = solution.back();
+            auto matches = findMatchesFor(top_neighbour, edge, &CompressedTile::bottom);
+            assert(matches.size() == 1);
+            auto it_next = matches.back();
+            CompressedTile next_piece = *it_next;
+            edge.erase(it_next);
+            // find correct orientation
+            while (! ((top_neighbour.bottom == next_piece.top) &&
+                      (left_neighbour.right == next_piece.left)) )
+            {
+                next_piece = transformCompressed(next_piece);
+                assert(next_piece.transform != TransformState::Straight);
+            }
+            solution.push_back(next_piece);
+        }
+    }
+    assert(middle.empty());
+
+    // solve bottom-left corner
+    {
+        CompressedTile const& top_neighbour = solution[(dimension - 2) * dimension];
+        auto matches = findMatchesFor(top_neighbour, corner, &CompressedTile::bottom);
+        assert(matches.size() == 1);
+        auto it_next = matches.back();
+        CompressedTile next_piece = *it_next;
+        corner.erase(it_next);
+        // find correct orientation
+        while (! ((top_neighbour.bottom == next_piece.top) &&
+                  (hasAnyMatch(next_piece, edge, &CompressedTile::right))) )
+        {
+            next_piece = transformCompressed(next_piece);
+            assert(next_piece.transform != TransformState::Straight);
+        }
+        solution.push_back(next_piece);
+    }
+
+    // solve bottom edge
+    for (int i = 0; i < dimension - 2; ++i) {
+        CompressedTile const& top_neighbour = solution[(dimension - 2) * dimension + i + 1];
+        CompressedTile const& left_neighbour = solution.back();
+        auto matches = findMatchesFor(left_neighbour, edge, &CompressedTile::right);
+        assert(matches.size() == 1);
+        auto it_next = matches.back();
+        assert(it_next != end(edge));
+        CompressedTile edge_piece = *it_next;
+        edge.erase(it_next);
+        // find correct orientation
+        while (! ((left_neighbour.right == edge_piece.left) &&
+                  (top_neighbour.bottom == edge_piece.top) &&
+                  (hasAnyMatch(edge_piece, (i == (dimension - 3) ? corner : edge), &CompressedTile::right))) )
+        {
+            edge_piece = transformCompressed(edge_piece);
+            assert(edge_piece.transform != TransformState::Straight);
+        }
+        solution.push_back(edge_piece);
+    }
+    assert(edge.empty());
+
+    // place final corner
+    {
+        assert(corner.size() == 1);
+        CompressedTile final_corner = corner.back();
+        corner.pop_back();
+        CompressedTile const& top_neighbour = solution[(dimension - 1) * dimension - 1];
+        CompressedTile const& left_neighbour = solution.back();
+        // find correct orientation
+        while (! ((left_neighbour.right == final_corner.left) &&
+                  (top_neighbour.bottom == final_corner.top)) )
+        {
+            final_corner = transformCompressed(final_corner);
+            assert(final_corner.transform != TransformState::Straight);
+        }
+        solution.push_back(final_corner);
+    }
+    assert(corner.empty());
 
 
     return {};
