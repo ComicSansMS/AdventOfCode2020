@@ -236,12 +236,6 @@ std::vector<std::vector<CompressedTile>::iterator> findMatchesFor(CompressedTile
     return ret;
 }
 
-/*
-1951    2311    3079
-2729    1427    2473
-2971    1489    1171
-*/
-
 std::vector<RawTile> solvePuzzle(SortedTiles const& sorted_tiles)
 {
     assert(sorted_tiles.corner.size() == 4);
@@ -426,5 +420,155 @@ std::vector<RawTile> solvePuzzle(SortedTiles const& sorted_tiles)
     assert(corner.empty());
 
 
+    // assemble raw tile solution
+    std::vector<RawTile> all_tiles;
+    all_tiles.reserve(dimension * dimension);
+    all_tiles = sorted_tiles.corner;
+    all_tiles.insert(end(all_tiles), begin(sorted_tiles.edge), end(sorted_tiles.edge));
+    all_tiles.insert(end(all_tiles), begin(sorted_tiles.middle), end(sorted_tiles.middle));
+    std::vector<RawTile> ret;
+    ret.reserve(dimension * dimension);
+    for (auto const& cs : solution) {
+        auto it = std::find_if(begin(all_tiles), end(all_tiles), [id = cs.id](auto const& t) { return t.id == id; });
+        assert(it != end(all_tiles));
+        ret.push_back(transformTo(*it, cs.transform));
+    }
+    return ret;
+}
+
+std::vector<RawTile> transformSolution(std::vector<RawTile> const& in, TransformState target_state)
+{
+    int const dimension = static_cast<int>(std::sqrt(in.size()));
+    assert(dimension * dimension == in.size());
+    auto const rot90 = [dimension](std::vector<RawTile> const& in) {
+        std::vector<RawTile> ret;
+        ret.resize(dimension * dimension);
+        for (int iy = 0; iy < dimension; ++iy) {
+            for (int ix = 0; ix < dimension; ++ix) {
+                ret[ix*dimension + iy] = transformTo(in[(dimension - iy - 1)*dimension + ix], TransformState::Rot90);
+            }
+        }
+        return ret;
+    };
+    auto const flip = [dimension](std::vector<RawTile> const& in) {
+        std::vector<RawTile> ret;
+        ret.resize(dimension * dimension);
+        for (int iy = 0; iy < dimension; ++iy) {
+            for (int ix = 0; ix < dimension; ++ix) {
+                ret[ix*dimension + iy] = transformTo(in[(dimension - ix - 1)*dimension + iy], TransformState::Flip);
+            }
+        }
+        return ret;
+    };
+    switch (target_state)
+    {
+    case TransformState::Rot90:
+        return rot90(in);
+    case TransformState::Rot180:
+        return rot90(rot90(in));
+    case TransformState::Rot270:
+        return rot90(rot90(rot90(in)));
+    case TransformState::Flip:
+        return flip(in);
+    case TransformState::Flip90:
+        return rot90(flip(in));
+    case TransformState::Flip180:
+        return rot90(rot90(flip(in)));
+    case TransformState::Flip270:
+        return rot90(rot90(rot90(flip(in))));
+    case TransformState::Straight:
+        break;
+    }
+    return in;
+}
+
+GaplessField makeGapless(std::vector<RawTile> const& tiles)
+{
+    int const dimension = static_cast<int>(std::sqrt(tiles.size()));
+    assert(dimension * dimension == tiles.size());
+    GaplessField ret;
+    ret.dimension = dimension * 8;
+    ret.field.resize(ret.dimension * ret.dimension);
+    for (int ity = 0; ity < dimension; ++ity) {
+        for (int itx = 0; itx < dimension; ++itx) {
+            RawTile const& t = tiles[ity * dimension + itx];
+            for (int iy = 1; iy < 9; ++iy) {
+                int const target_y = (ity * 8) + iy - 1;
+                for (int ix = 1; ix < 9; ++ix) {
+                    int const target_x = (itx * 8) + ix - 1;
+                    ret.field[target_y * ret.dimension + target_x] = t.field[iy * 10 + ix];
+                }
+            }
+        }
+    }
+    return ret;
+}
+
+Pattern getDragonPattern()
+{
+    char const pattern[] = "                  # \n"
+                           "#    ##    ##    ###\n"
+                           " #  #  #  #  #  #   \n";
+    Pattern p;
+    p.height = 3;
+    p.width = 20;
+    p.data.reserve(p.width * p.height);
+    for (auto const c : pattern) {
+        if ((c == '\n') || (c == '\0')) {
+            assert(p.data.size() % p.width == 0);
+        } else {
+            p.data.push_back((c == '#') ? 1 : 0);
+        }
+    }
+    assert(p.data.size() == p.width * p.height);
+    return p;
+}
+
+std::vector<Vec2> findInField(std::vector<RawTile> const& field, Pattern const& p)
+{
+    TransformState const transforms[] = { TransformState::Straight, TransformState::Rot90, TransformState::Rot180,
+                                          TransformState::Rot270, TransformState::Flip, TransformState::Flip90,
+                                          TransformState::Flip180, TransformState::Flip270 };
+    for (auto const transform : transforms) {
+        GaplessField gf = makeGapless(transformSolution(field, transform));
+        std::vector<Vec2> ret;
+        for (int iy = 0; iy < gf.dimension; ++iy) {
+            for (int ix = 0; ix < gf.dimension; ++ix) {
+                bool found_pattern = true;
+                for(int py = 0; py < p.height; ++py) {
+                    for(int px = 0; px < p.width; ++px) {
+                        int const fy = iy + py;
+                        int const fx = ix + px;
+                        if ((fy >= gf.dimension) || (fx >= gf.dimension)) { found_pattern = false; break; }
+                        if (p.data[py * p.width + px]) {
+                            if (!gf.field[fy * gf.dimension + fx]) {
+                                found_pattern = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (!found_pattern) { break; }
+                }
+                if (found_pattern) {
+                    ret.push_back(Vec2{ ix, iy });
+                }
+            }
+        }
+        if (!ret.empty()) {
+            return ret;
+        }
+    }
     return {};
+}
+
+int64_t solve2(std::vector<RawTile> const& tiles)
+{
+    auto const sorted_tiles = findCorners(tiles);
+    auto const solved_puzzle = solvePuzzle(sorted_tiles);
+    auto const findings = findInField(solved_puzzle, getDragonPattern());
+    GaplessField gf = makeGapless(solved_puzzle);
+    auto const fields_total = std::count(begin(gf.field), end(gf.field), 1);
+    auto const dragon_pattern = getDragonPattern();
+    auto const fields_dragon = std::count(begin(dragon_pattern.data), end(dragon_pattern.data), 1);
+    return fields_total - (fields_dragon * findings.size());
 }

@@ -82,4 +82,50 @@ int64_t solve1(std::vector<RawTile> const& t);
 
 std::vector<RawTile> solvePuzzle(SortedTiles const& sorted_tiles);
 
+std::vector<RawTile> transformSolution(std::vector<RawTile> const& in, TransformState target_state);
+
+struct GaplessField {
+    int dimension;
+    std::vector<int> field;
+};
+
+template<>
+struct fmt::formatter<GaplessField>
+{
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx) {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(GaplessField const& f, FormatContext& ctx) {
+        for (int iy = 0; iy < f.dimension; ++iy) {
+            for (int ix = 0; ix < f.dimension; ++ix) {
+                fmt::format_to(ctx.out(), "{}", ((f.field[iy * f.dimension + ix] == 1) ? '#' : '.'));
+            }
+            fmt::format_to(ctx.out(), "\n");
+        }
+        return ctx.out();
+    }
+};
+
+GaplessField makeGapless(std::vector<RawTile> const& tiles);
+
+struct Pattern {
+    int width;
+    int height;
+    std::vector<int> data;
+};
+
+Pattern getDragonPattern();
+
+struct Vec2 {
+    int x;
+    int y;
+};
+
+std::vector<Vec2> findInField(std::vector<RawTile> const& field, Pattern const& p);
+
+int64_t solve2(std::vector<RawTile> const& tiles);
+
 #endif

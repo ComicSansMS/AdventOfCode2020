@@ -324,6 +324,194 @@ Tile 3079:
     SECTION("Solve Puzzle")
     {
         auto const sorted_tiles = findCorners(tiles);
-        solvePuzzle(sorted_tiles);
+        auto const solved_puzzle = solvePuzzle(sorted_tiles);
+        REQUIRE(solved_puzzle.size() == 9);
+        /*
+        1951    2311    3079
+        2729    1427    2473
+        2971    1489    1171
+        */
+        CHECK(solved_puzzle[0].id == 3079);
+        CHECK(solved_puzzle[1].id == 2473);
+        CHECK(solved_puzzle[2].id == 1171);
+        CHECK(solved_puzzle[3].id == 2311);
+        CHECK(solved_puzzle[4].id == 1427);
+        CHECK(solved_puzzle[5].id == 1489);
+        CHECK(solved_puzzle[6].id == 1951);
+        CHECK(solved_puzzle[7].id == 2729);
+        CHECK(solved_puzzle[8].id == 2971);
+
+        auto const rectified = transformSolution(solved_puzzle, TransformState::Rot90);
+        CHECK(rectified[0].id == 1951);
+        CHECK(rectified[1].id == 2311);
+        CHECK(rectified[2].id == 3079);
+        CHECK(rectified[3].id == 2729);
+        CHECK(rectified[4].id == 1427);
+        CHECK(rectified[5].id == 2473);
+        CHECK(rectified[6].id == 2971);
+        CHECK(rectified[7].id == 1489);
+        CHECK(rectified[8].id == 1171);
+        CHECK(fmt::format("{}", rectified[0]) ==
+            "#...##.#..\n"
+            "..#.#..#.#\n"
+            ".###....#.\n"
+            "###.##.##.\n"
+            ".###.#####\n"
+            ".##.#....#\n"
+            "#...######\n"
+            ".....#..##\n"
+            "#.####...#\n"
+            "#.##...##.\n");
+
+        CHECK(fmt::format("{}", rectified[1]) ==
+            "..###..###\n"
+            "###...#.#.\n"
+            "..#....#..\n"
+            ".#.#.#..##\n"
+            "##...#.###\n"
+            "##.##.###.\n"
+            "####.#...#\n"
+            "#...##..#.\n"
+            "##..#.....\n"
+            "..##.#..#.\n");
+
+        CHECK(fmt::format("{}", rectified[2]) ==
+            "#.#.#####.\n"
+            ".#..######\n"
+            "..#.......\n"
+            "######....\n"
+            "####.#..#.\n"
+            ".#...#.##.\n"
+            "#.#####.##\n"
+            "..#.###...\n"
+            "..#.......\n"
+            "..#.###...\n");
+
+        CHECK(fmt::format("{}", rectified[3]) ==
+            "#.##...##.\n"
+            "##..#.##..\n"
+            "##.####...\n"
+            "####.#.#..\n"
+            ".#.####...\n"
+            ".##..##.#.\n"
+            "....#..#.#\n"
+            "..#.#.....\n"
+            "####.#....\n"
+            "...#.#.#.#\n");
+
+        CHECK(fmt::format("{}", rectified[4]) ==
+            "..##.#..#.\n"
+            "..#..###.#\n"
+            ".#.####.#.\n"
+            "...#.#####\n"
+            "...##..##.\n"
+            "....#...##\n"
+            "#.#.#.##.#\n"
+            ".#.##.#..#\n"
+            ".#..#.##..\n"
+            "###.##.#..\n");
+
+        CHECK(fmt::format("{}", rectified[5]) ==
+            "..#.###...\n"
+            "##.##....#\n"
+            "..#.###..#\n"
+            "###.#..###\n"
+            ".######.##\n"
+            "#.#.#.#...\n"
+            "#.###.###.\n"
+            "#.###.##..\n"
+            ".######...\n"
+            ".##...####\n");
+
+        CHECK(fmt::format("{}", rectified[6]) ==
+            "...#.#.#.#\n"
+            "..#.#.###.\n"
+            "..####.###\n"
+            "#..#.#..#.\n"
+            ".#..####.#\n"
+            ".#####..##\n"
+            "##.##..#..\n"
+            "#.#.###...\n"
+            "#...###...\n"
+            "..#.#....#\n");
+
+        CHECK(fmt::format("{}", rectified[7]) ==
+            "###.##.#..\n"
+            "..##.##.##\n"
+            "##.#...##.\n"
+            "...#.#.#..\n"
+            "#..#.#.#.#\n"
+            "#####...#.\n"
+            "..#...#...\n"
+            ".##..##...\n"
+            "..##...#..\n"
+            "##.#.#....\n");
+
+        CHECK(fmt::format("{}", rectified[8]) ==
+            ".##...####\n"
+            "#..#.##..#\n"
+            ".#.#..#.##\n"
+            ".####.###.\n"
+            "####.###..\n"
+            ".##....##.\n"
+            ".####...#.\n"
+            ".####.##.#\n"
+            "...#..####\n"
+            "...##.....\n");
+    }
+
+    SECTION("Gapless Field")
+    {
+        auto const sorted_tiles = findCorners(tiles);
+        auto const solved_puzzle = solvePuzzle(sorted_tiles);
+        auto const rectified = transformSolution(solved_puzzle, TransformState::Rot90);
+
+        auto const gapless = makeGapless(rectified);
+
+        CHECK(fmt::format("{}", gapless) ==
+            ".#.#..#.##...#.##..#####\n"
+            "###....#.#....#..#......\n"
+            "##.##.###.#.#..######...\n"
+            "###.#####...#.#####.#..#\n"
+            "##.#....#.##.####...#.##\n"
+            "...########.#....#####.#\n"
+            "....#..#...##..#.#.###..\n"
+            ".####...#..#.....#......\n"
+            "#..#.##..#..###.#.##....\n"
+            "#.####..#.####.#.#.###..\n"
+            "###.#.#...#.######.#..##\n"
+            "#.####....##..########.#\n"
+            "##..##.#...#...#.#.#.#..\n"
+            "...#..#..#.#.##..###.###\n"
+            ".#.#....#.##.#...###.##.\n"
+            "###.#...#..#.##.######..\n"
+            ".#.#.###.##.##.#..#.##..\n"
+            ".####.###.#...###.#..#.#\n"
+            "..#.#..#..#.#.#.####.###\n"
+            "#..####...#.#.#.###.###.\n"
+            "#####..#####...###....##\n"
+            "#.##..#..#...#..####...#\n"
+            ".#.###..##..##..####.##.\n"
+            "...###...##...#...#..###\n");
+    }
+
+    SECTION("Find in Field")
+    {
+        auto const sorted_tiles = findCorners(tiles);
+        auto const solved_puzzle = solvePuzzle(sorted_tiles);
+
+        auto const findings = findInField(solved_puzzle, getDragonPattern());
+        REQUIRE(findings.size() == 2);
+
+        REQUIRE(findings[0].x == 2);
+        REQUIRE(findings[0].y == 2);
+
+        REQUIRE(findings[1].x == 1);
+        REQUIRE(findings[1].y == 16);
+    }
+
+    SECTION("Solve 2")
+    {
+        CHECK(solve2(tiles) == 273);
     }
 }

@@ -42,8 +42,7 @@ int main(int argc, char* argv[])
     SortedTiles const sorted = findCorners(tiles);
 
     fmt::print("First result is {}\n", solve1(tiles));
-    solvePuzzle(sorted);
-    //fmt::print("Second result is {}\n", countWithLoops(rules_and_words));
+    fmt::print("Second result is {}\n", solve2(tiles));
 
     return 0;
 }
